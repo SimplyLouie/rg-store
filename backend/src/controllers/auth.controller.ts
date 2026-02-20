@@ -11,29 +11,44 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { username } });
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
 
-  if (!user) {
-    res.status(401).json({ message: 'Invalid credentials' });
-    return;
+    if (!user) {
+      console.warn(`[Login] User not found: ${username}`);
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
+    }
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isValid) {
+      console.warn(`[Login] Invalid password for user: ${username}`);
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
+    }
+
+    const secret = process.env.JWT_SECRET || 'fallback-secret';
+    if (secret === 'fallback-secret') {
+      console.warn('[Login] WARNING: Using fallback JWT secret. Set JWT_SECRET in environment.');
+    }
+
+    const token = jwt.sign({ userId: user.id }, secret, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    } as any);
+
+    console.log(`[Login] Successful login for user: ${username}`);
+    res.json({
+      token,
+      user: { id: user.id, username: user.username },
+    });
+  } catch (error: any) {
+    console.error('[Login] Database or server error:', error);
+    res.status(500).json({
+      message: 'Internal server error during login',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
-
-  const isValid = await bcrypt.compare(password, user.passwordHash);
-
-  if (!isValid) {
-    res.status(401).json({ message: 'Invalid credentials' });
-    return;
-  }
-
-  const secret = process.env.JWT_SECRET || 'fallback-secret';
-  const token = jwt.sign({ userId: user.id }, secret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  } as any);
-
-  res.json({
-    token,
-    user: { id: user.id, username: user.username },
-  });
 };
 
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
