@@ -25,7 +25,6 @@ import {
   BarChart3,
   Download,
   Calendar,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
