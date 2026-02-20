@@ -1,0 +1,13 @@
+{
+  "name": "rg-store",
+  "version": "1.0.0",
+  "description": "RG Store Inventory & POS System",
+  "private": true,
+  "scripts": {
+    "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "setup": "npm run install:all && cd backend && npm run db:generate && npm run db:push && npm run db:seed"
+  }
+}

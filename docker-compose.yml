@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rg-store-db
+    environment:
+      POSTGRES_USER: rgstore
+      POSTGRES_PASSWORD: rgstore123
+      POSTGRES_DB: rg_store
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rgstore -d rg_store"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: rg-store-api
+    environment:
+      DATABASE_URL: postgresql://rgstore:rgstore123@postgres:5432/rg_store?schema=public
+      JWT_SECRET: rg-store-super-secret-jwt-key-2024
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npx ts-node src/prisma/seed.ts && npm start"
+
+volumes:
+  pgdata:
