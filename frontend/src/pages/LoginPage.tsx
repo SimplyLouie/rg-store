@@ -108,10 +108,6 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            <p className="text-xs text-center text-gray-400 mt-4">
-              Default: admin / admin123
-            </p>
           </CardContent>
         </Card>
       </div>
