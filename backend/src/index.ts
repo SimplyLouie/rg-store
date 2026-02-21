@@ -35,13 +35,23 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Routes
+// We mount them both with and without /api prefix to handle different Vercel routing scenarios
+const mountRoutes = (router: express.Router) => {
+  router.use('/products', productRoutes);
+  router.use('/sales', salesRoutes);
+  router.use('/reports', reportsRoutes);
+};
 
-app.use('/api/products', productRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/reports', reportsRoutes);
+// Create a router for /api
+const apiRouter = express.Router();
+mountRoutes(apiRouter);
+app.use('/api', apiRouter);
+
+// Also mount them directly on the app (standard fallback)
+app.use('/products', productRoutes);
+app.use('/sales', salesRoutes);
+app.use('/reports', reportsRoutes);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
