@@ -250,3 +250,45 @@ export const checkSkuAvailability = async (req: Request, res: Response): Promise
     res.status(500).json({ message: 'Error checking SKU availability' });
   }
 };
+
+export const getNextSku = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { category } = req.params;
+    if (!category) {
+      res.status(400).json({ message: 'Category is required' });
+      return;
+    }
+
+    const prefix = category.substring(0, 3).toUpperCase();
+
+    // Find products with this prefix
+    const products = await prisma.product.findMany({
+      where: {
+        sku: {
+          startsWith: `${prefix}-`,
+        },
+      },
+      select: { sku: true },
+    });
+
+    let nextNumber = 1;
+    if (products.length > 0) {
+      const numbers = products
+        .map((p) => {
+          const parts = p.sku.split('-');
+          return parts.length > 1 ? parseInt(parts[1]) : 0;
+        })
+        .filter((n) => !isNaN(n));
+
+      if (numbers.length > 0) {
+        nextNumber = Math.max(...numbers) + 1;
+      }
+    }
+
+    const nextSku = `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+    res.json({ nextSku });
+  } catch (error: any) {
+    console.error('Error generating next SKU:', error);
+    res.status(500).json({ message: 'Error generating next SKU' });
+  }
+};

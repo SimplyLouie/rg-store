@@ -9,6 +9,7 @@ import {
   adjustStock,
   getCategories,
   checkSkuAvailability,
+  getNextSku,
 } from '../controllers/products.controller';
 import { authMiddleware } from '../middleware/auth';
 
@@ -25,5 +26,6 @@ router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
 router.post('/:id/adjust-stock', adjustStock);
 router.get('/check-sku/:sku', checkSkuAvailability);
+router.get('/next-sku/:category', getNextSku);
 
 export default router;

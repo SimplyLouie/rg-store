@@ -78,6 +78,25 @@ export default function InventoryPage() {
     return () => clearTimeout(timer);
   }, [formData.sku, showAddEdit, selectedProduct]);
 
+  useEffect(() => {
+    if (!showAddEdit || selectedProduct || !formData.category) return;
+
+    const fetchNextSku = async () => {
+      setCheckingSku(true);
+      try {
+        const { nextSku } = await productsApi.getNextSku(formData.category);
+        setFormData(f => ({ ...f, sku: nextSku }));
+        setSkuAvailable(true);
+      } catch (err) {
+        console.error('Failed to fetch next SKU:', err);
+      } finally {
+        setCheckingSku(false);
+      }
+    };
+
+    fetchNextSku();
+  }, [formData.category, showAddEdit, selectedProduct]);
+
   const filteredProducts = products
     .filter((p) => {
       if (selectedCategory !== 'All' && p.category !== selectedCategory) return false;
@@ -409,10 +428,19 @@ export default function InventoryPage() {
               <Input
                 value={formData.sku}
                 onChange={(e) => setFormData((f) => ({ ...f, sku: e.target.value.toUpperCase() }))}
-                placeholder="e.g. BEV-001"
-                className={skuAvailable === false ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                placeholder={!selectedProduct ? 'Select category...' : 'e.g. BEV-001'}
+                readOnly={!selectedProduct}
+                className={`
+                  ${skuAvailable === false ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                  ${!selectedProduct ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}
+                `}
               />
-              {checkingSku && <p className="text-[10px] text-gray-400 animate-pulse">Checking availability...</p>}
+              {checkingSku && <p className="text-[10px] text-gray-400 animate-pulse">
+                {!selectedProduct ? 'Generating SKU...' : 'Checking availability...'}
+              </p>}
+              {!selectedProduct && !formData.category && (
+                <p className="text-[10px] text-gray-400">Will be generated after category selection</p>
+              )}
             </div>
 
             <div className="space-y-1">

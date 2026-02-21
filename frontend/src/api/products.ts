@@ -28,4 +28,7 @@ export const productsApi = {
 
   checkSku: (sku: string, excludeId?: string) =>
     api.get<{ available: boolean }>(`/products/check-sku/${sku}`, { params: { excludeId } }).then((r) => r.data),
+
+  getNextSku: (category: string) =>
+    api.get<{ nextSku: string }>(`/products/next-sku/${category}`).then((r) => r.data),
 };
