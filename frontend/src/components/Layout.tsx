@@ -24,6 +24,16 @@ const navItems = [
   { path: '/reports', label: 'Reports', icon: BarChart3 },
 ];
 
+const MOTIVATIONAL_QUOTES = [
+  "Believe you can and you're halfway there.",
+  "Your only limit is your mind.",
+  "Every small step counts.",
+  "Success is a journey, not a destination.",
+  "Stay positive, work hard, make it happen.",
+  "Do something today that your future self will thank you for.",
+  "The secret of getting ahead is getting started.",
+];
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout, updateProfile } = useAuth();
   const location = useLocation();
@@ -67,14 +77,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
+  const firstName = user?.displayName?.split(' ')[0] || 'User';
+  const quoteIndex = new Date().getDate() % MOTIVATIONAL_QUOTES.length;
+  const selectedQuote = MOTIVATIONAL_QUOTES[quoteIndex];
+
   return (
     <div className="min-h-[100dvh] bg-gray-50 flex flex-col overflow-x-hidden relative w-full">
       {/* Top navbar */}
       <header className="bg-blue-700 text-white shadow-lg sticky top-0 z-40 pt-[var(--sat,0px)]">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
-            <Store className="h-6 w-6" />
-            <span className="font-bold text-lg">RG Store</span>
+        <div className="flex items-center justify-between px-4 min-h-[3.5rem] py-2">
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-2">
+              <Store className="h-6 w-6" />
+              <span className="font-bold text-lg leading-tight">RG Store</span>
+            </div>
+            <div className="hidden sm:block mt-0.5">
+              <p className="text-[10px] text-blue-100 font-medium leading-tight">Welcome {firstName}!</p>
+              <p className="text-[8px] text-blue-200 italic leading-tight opacity-80">{selectedQuote}</p>
+            </div>
           </div>
 
           {/* Desktop nav */}
