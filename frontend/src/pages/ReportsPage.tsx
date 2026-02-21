@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { WelcomeSection } from '../components/WelcomeSection';
 import { reportsApi } from '../api/reports';
 import { DailyReport, RangeReport } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -99,8 +98,6 @@ export default function ReportsPage() {
           <p className="text-sm text-gray-500">Track your store performance</p>
         </div>
       </div>
-
-      <WelcomeSection />
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit">

@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { useProducts, useCategories, useProductMutations } from '../hooks/useProducts';
-import { WelcomeSection } from '../components/WelcomeSection';
 import { productsApi } from '../api/products';
 
 const CATEGORIES = [
@@ -273,8 +272,6 @@ export default function InventoryPage() {
           <Badge variant="warning">{showLowStock ? 'Show All' : 'View Only'}</Badge>
         </div>
       )}
-
-      <WelcomeSection />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
