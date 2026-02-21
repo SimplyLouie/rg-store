@@ -1,21 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create default admin user
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-  await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: {},
-    create: {
-      username: 'admin',
-      passwordHash: hashedPassword,
-    },
-  });
-
-  // Seed sample products
   const products = [
     { name: 'Coca Cola 1.5L', sku: 'BEV-001', barcode: '4902102072939', category: 'Beverages', price: 85, cost: 60, stock: 50, lowStockThreshold: 10 },
     { name: 'Pepsi 1.5L', sku: 'BEV-002', barcode: '4902102072946', category: 'Beverages', price: 80, cost: 55, stock: 45, lowStockThreshold: 10 },
@@ -37,7 +24,7 @@ async function main() {
     });
   }
 
-  console.log('Seed completed. Login with username: admin, password: admin123');
+  console.log('Seed completed. Create your admin user in Supabase Dashboard > Authentication > Users.');
 }
 
 main()

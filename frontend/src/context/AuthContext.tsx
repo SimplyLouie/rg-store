@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi } from '../api/auth';
+import { supabase } from '../lib/supabase';
 import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -17,24 +17,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('rg_token');
-    const storedUser = localStorage.getItem('rg_user');
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email ?? '' });
+      }
+      setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email ?? '' });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string) => {
-    const data = await authApi.login(username, password);
-    localStorage.setItem('rg_token', data.token);
-    localStorage.setItem('rg_user', JSON.stringify(data.user));
-    setUser(data.user);
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
-  const logout = () => {
-    localStorage.removeItem('rg_token');
-    localStorage.removeItem('rg_user');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 

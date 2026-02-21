@@ -68,7 +68,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-blue-200 hidden sm:block">{user?.username}</span>
+            <span className="text-xs text-blue-200 hidden sm:block">{user?.email}</span>
             <Button
               variant="ghost"
               size="sm"

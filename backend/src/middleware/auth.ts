@@ -1,18 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { supabaseAdmin } from '../lib/supabase';
 
 export interface AuthRequest extends Request {
   userId?: string;
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('[Auth] JWT_SECRET is not configured');
-    res.status(500).json({ message: 'Server configuration error' });
-    return;
-  }
-
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -23,8 +16,14 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const token = authHeader.split(' ')[1];
 
   try {
-    const payload = jwt.verify(token, secret) as { userId: string };
-    req.userId = payload.userId;
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !data.user) {
+      res.status(401).json({ message: 'Invalid or expired token' });
+      return;
+    }
+
+    req.userId = data.user.id;
     next();
   } catch {
     res.status(401).json({ message: 'Invalid or expired token' });
