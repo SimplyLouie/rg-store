@@ -57,16 +57,17 @@ export default function InventoryPage() {
   const [skuAvailable, setSkuAvailable] = useState<boolean | null>(null);
   const [checkingSku, setCheckingSku] = useState(false);
 
+  // Manual SKU availability check (EDIT mode only - SKU is read-only in Add mode)
   useEffect(() => {
-    if (!showAddEdit || !formData.sku || (selectedProduct && formData.sku === selectedProduct.sku)) {
-      setSkuAvailable(null);
+    if (!showAddEdit || !selectedProduct || !formData.sku || formData.sku === selectedProduct.sku) {
+      if (!selectedProduct && !formData.sku) setSkuAvailable(null);
       return;
     }
 
     const timer = setTimeout(async () => {
       setCheckingSku(true);
       try {
-        const { available } = await productsApi.checkSku(formData.sku, selectedProduct?.id);
+        const { available } = await productsApi.checkSku(formData.sku, selectedProduct.id);
         setSkuAvailable(available);
       } catch {
         setSkuAvailable(null);
@@ -78,24 +79,39 @@ export default function InventoryPage() {
     return () => clearTimeout(timer);
   }, [formData.sku, showAddEdit, selectedProduct]);
 
+  // Auto-SKU generation (ADD mode only)
   useEffect(() => {
-    if (!showAddEdit || selectedProduct || !formData.category) return;
+    if (!showAddEdit || selectedProduct || !formData.category) {
+      if (!showAddEdit) {
+        setSkuAvailable(null);
+        setCheckingSku(false);
+      }
+      return;
+    }
 
+    // Don't re-generate if the SKU already matches this category prefix and we already have a value
+    const prefix = formData.category.substring(0, 3).toUpperCase();
+    if (formData.sku.startsWith(`${prefix}-`) && skuAvailable) return;
+
+    let isMounted = true;
     const fetchNextSku = async () => {
       setCheckingSku(true);
       try {
         const { nextSku } = await productsApi.getNextSku(formData.category);
-        setFormData(f => ({ ...f, sku: nextSku }));
-        setSkuAvailable(true);
+        if (isMounted) {
+          setFormData(f => ({ ...f, sku: nextSku }));
+          setSkuAvailable(true);
+        }
       } catch (err) {
         console.error('Failed to fetch next SKU:', err);
       } finally {
-        setCheckingSku(false);
+        if (isMounted) setCheckingSku(false);
       }
     };
 
     fetchNextSku();
-  }, [formData.category, showAddEdit, selectedProduct]);
+    return () => { isMounted = false; };
+  }, [formData.category, showAddEdit, selectedProduct, skuAvailable, formData.sku]);
 
   const filteredProducts = products
     .filter((p) => {
