@@ -57,8 +57,12 @@ app.use('/api', apiRouter);
 mountRoutes(app as unknown as express.Router);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal server error' });
+  console.error('Global Error Handler:', err);
+  res.status(500).json({
+    message: 'Internal server error',
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
