@@ -136,9 +136,15 @@ export default function InventoryPage() {
         toast({ title: 'Product created' });
       }
       setShowAddEdit(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to save product';
-      toast({ variant: 'destructive', title: 'Error', description: msg });
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to save product';
+      const details = err.response?.data?.details;
+      console.error('Save error:', err.response?.data || err);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: details ? `${msg}: ${JSON.stringify(details)}` : msg
+      });
     }
   };
 
@@ -150,8 +156,9 @@ export default function InventoryPage() {
       await adjustStockMutation.mutateAsync({ id: selectedProduct.id, data: adjustData });
       toast({ title: `Stock ${adjustData.type === 'IN' ? 'added' : 'removed'} successfully` });
       setShowStockAdjust(false);
-    } catch {
-      toast({ variant: 'destructive', title: 'Failed to adjust stock' });
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to adjust stock';
+      toast({ variant: 'destructive', title: 'Error', description: msg });
     }
   };
 
@@ -161,8 +168,9 @@ export default function InventoryPage() {
       await deleteMutation.mutateAsync(selectedProduct.id);
       toast({ title: 'Product deleted' });
       setShowDelete(false);
-    } catch {
-      toast({ variant: 'destructive', title: 'Failed to delete product' });
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to delete product';
+      toast({ variant: 'destructive', title: 'Error', description: msg });
     }
   };
 
