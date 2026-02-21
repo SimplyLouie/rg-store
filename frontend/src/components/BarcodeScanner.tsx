@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from './ui/button';
 import { X, Camera, RefreshCw } from 'lucide-react';
@@ -21,35 +21,47 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const containerId = 'barcode-scanner-container';
 
+  const fetchCameras = useCallback(async () => {
+    try {
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length > 0) {
+        setCameras(devices.map(d => ({ id: d.id, label: d.label })));
+
+        // Only set initial camera if none is selected yet
+        setSelectedCameraId(prev => {
+          if (prev && devices.some(d => d.id === prev)) return prev;
+
+          const backCamera = devices.find(d =>
+            d.label.toLowerCase().includes('back') ||
+            d.label.toLowerCase().includes('environment') ||
+            d.label.toLowerCase().includes('iphone') ||
+            d.label.toLowerCase().includes('continuity')
+          );
+          return backCamera ? backCamera.id : devices[0].id;
+        });
+      } else {
+        setError('No cameras found on this device.');
+      }
+    } catch (err) {
+      setError('Camera access denied. Please allow camera permission.');
+    } finally {
+      setIsStarting(false);
+    }
+  }, []);
+
   // Initialize scanner and get cameras
   useEffect(() => {
     const scanner = new Html5Qrcode(containerId);
     scannerRef.current = scanner;
 
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length > 0) {
-          setCameras(devices.map(d => ({ id: d.id, label: d.label })));
-          // Prefer environment/back camera if available, otherwise first camera
-          const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-          const initialId = backCamera ? backCamera.id : devices[0].id;
-          setSelectedCameraId(initialId);
-        } else {
-          setError('No cameras found on this device.');
-          setIsStarting(false);
-        }
-      })
-      .catch(() => {
-        setError('Camera access denied. Please allow camera permission.');
-        setIsStarting(false);
-      });
+    fetchCameras();
 
     return () => {
       if (scannerRef.current?.isScanning) {
         scannerRef.current.stop().catch(() => { });
       }
     };
-  }, []);
+  }, [fetchCameras]);
 
   // Start/Restart scanner when selectedCameraId changes
   useEffect(() => {
@@ -99,9 +111,17 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
         <div className="p-4">
           {/* Camera Selection Dropdown */}
-          {cameras.length > 1 && (
+          {cameras.length > 0 && (
             <div className="mb-4">
-              <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Switch Camera</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] uppercase font-bold text-gray-400">Camera Source</label>
+                <button
+                  onClick={fetchCameras}
+                  className="text-[10px] uppercase font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <RefreshCw className="h-2.5 w-2.5" /> Refresh
+                </button>
+              </div>
               <div className="relative">
                 <select
                   value={selectedCameraId}
@@ -115,7 +135,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                   ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <RefreshCw className="h-4 w-4" />
+                  <Camera className="h-4 w-4" />
                 </div>
               </div>
             </div>
