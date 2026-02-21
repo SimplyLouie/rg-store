@@ -9,8 +9,13 @@ import {
   Menu,
   X,
   Store,
+  UserCircle,
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { useToast } from '../hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -20,9 +25,35 @@ const navItems = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { isAuthenticated, isLoading, user, logout, updateProfile } = useAuth();
   const location = useLocation();
+  const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState(user?.displayName || '');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    if (user?.displayName) setNewDisplayName(user.displayName);
+  }, [user?.displayName]);
+
+  const handleUpdateProfile = async () => {
+    if (!newDisplayName.trim()) return;
+    setIsUpdating(true);
+    try {
+      await updateProfile({ displayName: newDisplayName });
+      toast({ title: 'Profile updated' });
+      setShowProfile(false);
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating profile',
+        description: err.message
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -68,12 +99,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-blue-200 hidden sm:block">{user?.email}</span>
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center gap-2 hover:bg-blue-600 px-2 py-1 rounded-md transition-colors text-left"
+            >
+              <UserCircle className="h-5 w-5 text-blue-100" />
+              <div className="hidden sm:flex flex-col">
+                <span className="text-xs font-medium leading-none">{user?.displayName || 'Set Display Name'}</span>
+                <span className="text-[10px] text-blue-200 leading-tight">{user?.email}</span>
+              </div>
+            </button>
             <Button
               variant="ghost"
               size="sm"
               onClick={logout}
-              className="text-blue-100 hover:text-white hover:bg-blue-600"
+              className="text-blue-100 hover:text-white hover:bg-blue-600 ml-1"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:ml-1 sm:block">Logout</span>
@@ -139,6 +179,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 pb-16 md:pb-0 px-[var(--sal,0px)] pr-[var(--sar,0px)] overflow-x-hidden w-full">
         {children}
       </main>
+
+      {/* Profile Modal */}
+      <Dialog open={showProfile} onOpenChange={setShowProfile}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Profile Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                value={newDisplayName}
+                onChange={(e) => setNewDisplayName(e.target.value)}
+                placeholder="Your name"
+              />
+              <p className="text-[10px] text-gray-500">
+                This name will be displayed in the application header.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProfile(false)}>Cancel</Button>
+            <Button onClick={handleUpdateProfile} disabled={isUpdating}>
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
