@@ -103,6 +103,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             }
           },
           (decodedText) => {
+            // Provide haptic feedback if supported
+            if (navigator.vibrate) {
+              navigator.vibrate(100);
+            }
             onScan(decodedText);
             scannerRef.current?.stop().catch(() => { });
           },
