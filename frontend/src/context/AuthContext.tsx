@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const login = async (identifier: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email: identifier, password });
     if (error) throw error;
   };
 
