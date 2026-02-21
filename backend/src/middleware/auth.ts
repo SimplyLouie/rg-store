@@ -6,6 +6,13 @@ export interface AuthRequest extends Request {
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('[Auth] JWT_SECRET is not configured');
+    res.status(500).json({ message: 'Server configuration error' });
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -16,7 +23,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const token = authHeader.split(' ')[1];
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+    const payload = jwt.verify(token, secret) as { userId: string };
     req.userId = payload.userId;
     next();
   } catch {

@@ -28,9 +28,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const secret = process.env.JWT_SECRET || 'fallback-secret';
-    if (secret === 'fallback-secret') {
-      console.warn('[Login] WARNING: Using fallback JWT secret. Set JWT_SECRET in environment.');
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('[Login] JWT_SECRET is not configured');
+      res.status(500).json({ message: 'Server configuration error' });
+      return;
     }
 
     const token = jwt.sign({ userId: user.id }, secret, {
