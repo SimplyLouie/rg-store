@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Store, Lock, User as UserIcon } from 'lucide-react';
+import { Store, Lock, User as UserIcon, Github, Linkedin, Coffee, Heart } from 'lucide-react';
 
 export default function LoginPage() {
   const { isAuthenticated, login } = useAuth();
@@ -44,12 +44,12 @@ export default function LoginPage() {
           <p className="text-blue-200 mt-1 text-sm">Inventory & POS System</p>
         </div>
 
-        <Card className="shadow-2xl border-0">
+        <Card className="shadow-2xl border-0 overflow-hidden">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl text-center">Sign In</CardTitle>
             <CardDescription className="text-center">Enter your credentials to continue</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-8">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="identifier">Username or Email</Label>
@@ -103,6 +103,44 @@ export default function LoginPage() {
               </Button>
             </form>
           </CardContent>
+
+          {/* Developer Credit Footer */}
+          <div className="bg-gray-50/50 border-t border-gray-100 py-4 px-6">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 flex items-center gap-1.5">
+                Built with <Coffee className="h-3 w-3 text-amber-700" /> and <Heart className="h-3 w-3 text-red-500 fill-red-500" /> by
+              </span>
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://louie.mendezdev.online/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-white shadow-sm border border-gray-100 text-gray-600 hover:text-blue-600 hover:border-blue-200 transition-all hover:scale-110"
+                  title="Portfolio"
+                >
+                  <Store className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://github.com/SimplyLouie"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-white shadow-sm border border-gray-100 text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-all hover:scale-110"
+                  title="GitHub"
+                >
+                  <Github className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/louie-mendez/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-white shadow-sm border border-gray-100 text-gray-600 hover:text-[#0A66C2] hover:border-[#0A66C2]/30 transition-all hover:scale-110"
+                  title="LinkedIn"
+                >
+                  <Linkedin className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          </div>
         </Card>
       </div>
     </div>
