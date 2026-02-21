@@ -17,7 +17,13 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      const isAllowed =
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /\.vercel\.app$/.test(origin) ||
+        /\.mendezdev\.online$/.test(origin);
+
+      if (isAllowed) {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS`));
@@ -57,12 +63,8 @@ app.use('/api', apiRouter);
 mountRoutes(app as unknown as express.Router);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Global Error Handler:', err);
-  res.status(500).json({
-    message: 'Internal server error',
-    error: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
+  console.error(err.stack);
+  res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
