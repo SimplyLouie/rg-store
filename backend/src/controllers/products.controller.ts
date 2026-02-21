@@ -233,3 +233,20 @@ export const getCategories = async (_req: Request, res: Response): Promise<void>
 
   res.json(categories.map((c) => c.category));
 };
+
+export const checkSkuAvailability = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sku } = req.params;
+    const { excludeId } = req.query;
+
+    const existing = await prisma.product.findUnique({
+      where: { sku },
+    });
+
+    const isAvailable = !existing || (excludeId && existing.id === excludeId);
+    res.json({ available: !!isAvailable });
+  } catch (error: any) {
+    console.error('Error checking SKU availability:', error);
+    res.status(500).json({ message: 'Error checking SKU availability' });
+  }
+};

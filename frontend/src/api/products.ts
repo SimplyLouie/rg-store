@@ -25,4 +25,7 @@ export const productsApi = {
 
   adjustStock: (id: string, data: StockAdjustment) =>
     api.post<Product>(`/products/${id}/adjust-stock`, data).then((r) => r.data),
+
+  checkSku: (sku: string, excludeId?: string) =>
+    api.get<{ available: boolean }>(`/products/check-sku/${sku}`, { params: { excludeId } }).then((r) => r.data),
 };

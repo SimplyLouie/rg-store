@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Product, ProductFormData } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { Button } from '../components/ui/button';
@@ -54,6 +54,29 @@ export default function InventoryPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>(emptyForm);
   const [adjustData, setAdjustData] = useState({ quantity: 1, type: 'IN' as 'IN' | 'OUT', reason: '' });
+  const [skuAvailable, setSkuAvailable] = useState<boolean | null>(null);
+  const [checkingSku, setCheckingSku] = useState(false);
+
+  useEffect(() => {
+    if (!showAddEdit || !formData.sku || (selectedProduct && formData.sku === selectedProduct.sku)) {
+      setSkuAvailable(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingSku(true);
+      try {
+        const { available } = await productsApi.checkSku(formData.sku, selectedProduct?.id);
+        setSkuAvailable(available);
+      } catch {
+        setSkuAvailable(null);
+      } finally {
+        setCheckingSku(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.sku, showAddEdit, selectedProduct]);
 
   const filteredProducts = products
     .filter((p) => {
@@ -124,6 +147,11 @@ export default function InventoryPage() {
   const handleSave = async () => {
     if (!formData.name || !formData.sku || !formData.category || formData.price <= 0) {
       toast({ variant: 'destructive', title: 'Please fill all required fields' });
+      return;
+    }
+
+    if (skuAvailable === false) {
+      toast({ variant: 'destructive', title: 'SKU already exists', description: 'Please use a unique SKU.' });
       return;
     }
 
@@ -375,12 +403,16 @@ export default function InventoryPage() {
             </div>
 
             <div className="space-y-1">
-              <Label>SKU *</Label>
+              <Label className={skuAvailable === false ? 'text-red-500' : ''}>
+                SKU * {skuAvailable === false && <span className="text-xs font-normal">(Taken)</span>}
+              </Label>
               <Input
                 value={formData.sku}
-                onChange={(e) => setFormData((f) => ({ ...f, sku: e.target.value }))}
+                onChange={(e) => setFormData((f) => ({ ...f, sku: e.target.value.toUpperCase() }))}
                 placeholder="e.g. BEV-001"
+                className={skuAvailable === false ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
+              {checkingSku && <p className="text-[10px] text-gray-400 animate-pulse">Checking availability...</p>}
             </div>
 
             <div className="space-y-1">

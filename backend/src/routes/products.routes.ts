@@ -8,6 +8,7 @@ import {
   deleteProduct,
   adjustStock,
   getCategories,
+  checkSkuAvailability,
 } from '../controllers/products.controller';
 import { authMiddleware } from '../middleware/auth';
 
@@ -23,5 +24,6 @@ router.post('/', createProduct);
 router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
 router.post('/:id/adjust-stock', adjustStock);
+router.get('/check-sku/:sku', checkSkuAvailability);
 
 export default router;
