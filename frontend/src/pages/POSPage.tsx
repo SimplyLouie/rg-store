@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { WelcomeSection } from '../components/WelcomeSection';
 import { productsApi } from '../api/products';
 import { salesApi } from '../api/sales';
 import { Product, CartItem } from '../types';
@@ -183,7 +184,9 @@ export default function POSPage() {
         showMobileCart ? "hidden md:flex" : "flex"
       )}>
         {/* Search & filters */}
-        <div className="px-3 pt-3 pb-2 bg-white border-b space-y-2">
+        <div className="px-3 pt-3 pb-2 bg-white border-b space-y-3">
+          <WelcomeSection />
+
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
