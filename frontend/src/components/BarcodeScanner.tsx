@@ -19,9 +19,20 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [isStarting, setIsStarting] = useState(true);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [isSecureContext, setIsSecureContext] = useState(true);
   const containerId = 'barcode-scanner-container';
 
+  // Check for secure context (HTTPS/Localhost)
+  useEffect(() => {
+    const isSecure = window.isSecureContext || window.location.hostname === 'localhost';
+    setIsSecureContext(isSecure);
+    if (!isSecure) {
+      setError('Camera access requires HTTPS or localhost. Please ensure you are visiting via an encrypted connection.');
+    }
+  }, []);
+
   const fetchCameras = useCallback(async () => {
+    if (!isSecureContext) return;
     try {
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length > 0) {
@@ -31,13 +42,14 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         setSelectedCameraId(prev => {
           if (prev && devices.some(d => d.id === prev)) return prev;
 
-          const backCamera = devices.find(d =>
-            d.label.toLowerCase().includes('back') ||
-            d.label.toLowerCase().includes('environment') ||
-            d.label.toLowerCase().includes('iphone') ||
-            d.label.toLowerCase().includes('continuity')
+          // Priority order for labels
+          const priorityKeywords = ['back', 'environment', 'rear', 'exterior', 'iphone', 'continuity', 'droidcam', 'iriun'];
+
+          const prioritized = devices.find(d =>
+            priorityKeywords.some(keyword => d.label.toLowerCase().includes(keyword))
           );
-          return backCamera ? backCamera.id : devices[0].id;
+
+          return prioritized ? prioritized.id : devices[0].id;
         });
       } else {
         setError('No cameras found on this device.');
@@ -76,9 +88,18 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
           await scannerRef.current.stop();
         }
 
+        // Use facingMode for mobile devices if labels are generic or no cameras found with specific labels
+        const cameraConfig = selectedCameraId
+          ? selectedCameraId
+          : { facingMode: "environment" };
+
         await scannerRef.current?.start(
-          selectedCameraId,
-          { fps: 10, qrbox: { width: 250, height: 150 } },
+          cameraConfig,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 150 },
+            aspectRatio: 1.0 // Better for some mobile displays
+          },
           (decodedText) => {
             onScan(decodedText);
             scannerRef.current?.stop().catch(() => { });
