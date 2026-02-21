@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { productsApi } from '../api/products';
 import { salesApi } from '../api/sales';
 import { Product, CartItem } from '../types';
@@ -6,7 +7,6 @@ import { BarcodeScanner } from '../components/BarcodeScanner';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-
 import { useToast } from '../hooks/use-toast';
 import { formatCurrency, cn } from '../lib/utils';
 import {
@@ -23,13 +23,17 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
+import { useProducts, useCategories, productKeys } from '../hooks/useProducts';
 
 export default function POSPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const queryClient = useQueryClient();
+  const { data: products = [], isLoading: productsLoading } = useProducts();
+  const { data: categories = [] } = useCategories();
+
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categories, setCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showScanner, setShowScanner] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
@@ -42,32 +46,11 @@ export default function POSPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadProducts();
-    loadCategories();
-  }, []);
-
-  useEffect(() => {
     filterProducts();
   }, [products, searchQuery, selectedCategory]);
 
-  const loadProducts = async () => {
-    try {
-      const data = await productsApi.getAll();
-      setProducts(data.filter((p) => p.stock > 0));
-    } catch {
-      toast({ variant: 'destructive', title: 'Failed to load products' });
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const cats = await productsApi.getCategories();
-      setCategories(cats);
-    } catch { }
-  };
-
   const filterProducts = () => {
-    let filtered = products;
+    let filtered = products.filter((p) => p.stock > 0);
     if (selectedCategory !== 'All') {
       filtered = filtered.filter((p) => p.category === selectedCategory);
     }
@@ -175,7 +158,8 @@ export default function POSPage() {
         change: sale.change ?? null,
       });
       setCheckoutState('success');
-      await loadProducts();
+      // Invalidate products query instead of manual reload
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to process sale';
       toast({ variant: 'destructive', title: 'Checkout failed', description: msg });
@@ -241,7 +225,19 @@ export default function POSPage() {
 
         {/* Product grid */}
         <div className="flex-1 overflow-y-auto p-3">
-          {filteredProducts.length === 0 ? (
+          {productsLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="p-3 rounded-lg border-2 border-gray-100 bg-white space-y-2">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-16 mt-2" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-gray-400">
               <ShoppingCart className="h-12 w-12 mb-3 opacity-30" />
               <p className="text-sm">No products found</p>
@@ -385,10 +381,10 @@ export default function POSPage() {
                       onClick={() => method === 'cash' && setPaymentMethod(method)}
                       disabled={method === 'card'}
                       className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 font-bold transition-all ${method === 'card'
-                          ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
-                          : paymentMethod === method
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 active:scale-95'
-                            : 'border-gray-200 text-gray-500 hover:border-gray-300 active:scale-95'
+                        ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                        : paymentMethod === method
+                          ? 'border-blue-600 bg-blue-50 text-blue-700 active:scale-95'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300 active:scale-95'
                         }`}
                     >
                       {method === 'card' && (

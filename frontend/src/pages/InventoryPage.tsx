@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { productsApi } from '../api/products';
+import { useState } from 'react';
 import { Product, ProductFormData } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { Button } from '../components/ui/button';
@@ -23,6 +22,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
+import { useProducts, useCategories, useProductMutations } from '../hooks/useProducts';
+import { productsApi } from '../api/products';
 
 const CATEGORIES = [
   'Beverages', 'Snacks', 'Noodles', 'Cleaning', 'Personal Care',
@@ -34,11 +36,13 @@ const emptyForm: ProductFormData = {
 };
 
 export default function InventoryPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: products = [], isLoading: loading } = useProducts();
+  const { data: categories = [] } = useCategories();
+  const { createMutation, updateMutation, deleteMutation, adjustStockMutation } = useProductMutations();
+  const { toast } = useToast();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categories, setCategories] = useState<string[]>([]);
   const [showLowStock, setShowLowStock] = useState(false);
   const [sortField, setSortField] = useState<keyof Product>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -50,24 +54,6 @@ export default function InventoryPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>(emptyForm);
   const [adjustData, setAdjustData] = useState({ quantity: 1, type: 'IN' as 'IN' | 'OUT', reason: '' });
-  const [isSaving, setIsSaving] = useState(false);
-
-  const { toast } = useToast();
-
-  useEffect(() => { loadData(); }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [prods, cats] = await Promise.all([productsApi.getAll(), productsApi.getCategories()]);
-      setProducts(prods);
-      setCategories(cats);
-    } catch {
-      toast({ variant: 'destructive', title: 'Failed to load inventory' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredProducts = products
     .filter((p) => {
@@ -140,52 +126,43 @@ export default function InventoryPage() {
       toast({ variant: 'destructive', title: 'Please fill all required fields' });
       return;
     }
-    setIsSaving(true);
+
     try {
       if (selectedProduct) {
-        await productsApi.update(selectedProduct.id, formData);
+        await updateMutation.mutateAsync({ id: selectedProduct.id, data: formData });
         toast({ title: 'Product updated', variant: 'default' });
       } else {
-        await productsApi.create(formData);
+        await createMutation.mutateAsync(formData);
         toast({ title: 'Product created' });
       }
       setShowAddEdit(false);
-      await loadData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save product';
       toast({ variant: 'destructive', title: 'Error', description: msg });
-    } finally {
-      setIsSaving(false);
     }
   };
 
+  const isSaving = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || adjustStockMutation.isPending;
+
   const handleAdjustStock = async () => {
     if (!selectedProduct || adjustData.quantity <= 0) return;
-    setIsSaving(true);
     try {
-      await productsApi.adjustStock(selectedProduct.id, adjustData);
+      await adjustStockMutation.mutateAsync({ id: selectedProduct.id, data: adjustData });
       toast({ title: `Stock ${adjustData.type === 'IN' ? 'added' : 'removed'} successfully` });
       setShowStockAdjust(false);
-      await loadData();
     } catch {
       toast({ variant: 'destructive', title: 'Failed to adjust stock' });
-    } finally {
-      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!selectedProduct) return;
-    setIsSaving(true);
     try {
-      await productsApi.delete(selectedProduct.id);
+      await deleteMutation.mutateAsync(selectedProduct.id);
       toast({ title: 'Product deleted' });
       setShowDelete(false);
-      await loadData();
     } catch {
       toast({ variant: 'destructive', title: 'Failed to delete product' });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -251,8 +228,31 @@ export default function InventoryPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-3"><Skeleton className="h-4 w-24" /></th>
+                    <th className="px-3 py-3 hidden sm:table-cell"><Skeleton className="h-4 w-16" /></th>
+                    <th className="px-3 py-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></th>
+                    <th className="px-3 py-3"><Skeleton className="h-4 w-16 ml-auto" /></th>
+                    <th className="px-3 py-3"><Skeleton className="h-4 w-12 ml-auto" /></th>
+                    <th className="px-3 py-3"><Skeleton className="h-4 w-20 ml-auto" /></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-32 mb-1" /><Skeleton className="h-3 w-24" /></td>
+                      <td className="px-3 py-3 hidden sm:table-cell"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-3 py-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-12 ml-auto" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-8 w-24 ml-auto" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -303,10 +303,10 @@ export default function InventoryPage() {
                       <td className="px-3 py-3 text-right">
                         <span
                           className={`font-semibold ${product.stock === 0
-                              ? 'text-red-600'
-                              : product.isLowStock
-                                ? 'text-yellow-600'
-                                : 'text-green-600'
+                            ? 'text-red-600'
+                            : product.isLowStock
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
                             }`}
                         >
                           {product.stock}
@@ -483,8 +483,8 @@ export default function InventoryPage() {
                     key={t}
                     onClick={() => setAdjustData((d) => ({ ...d, type: t }))}
                     className={`py-2 rounded-lg border-2 font-medium text-sm transition-colors ${adjustData.type === t
-                        ? t === 'IN' ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-500 bg-red-50 text-red-700'
-                        : 'border-gray-200 text-gray-600'
+                      ? t === 'IN' ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-500 bg-red-50 text-red-700'
+                      : 'border-gray-200 text-gray-600'
                       }`}
                   >
                     {t === 'IN' ? '+ Add Stock' : '- Remove Stock'}

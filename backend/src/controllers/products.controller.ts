@@ -14,13 +14,13 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     ];
   }
 
-  if (category) {
-    where.category = String(category);
+  if (lowStock === 'true') {
+    // Note: Cross-field comparison (stock <= lowStockThreshold) is done post-query 
+    // to maintain database portability and avoid complex raw queries for small datasets.
   }
 
-  if (lowStock === 'true') {
-    // Raw filter: stock <= lowStockThreshold handled post-query
-  }
+  // Set caching headers for product list
+  res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=59');
 
   const allProducts = await prisma.product.findMany({
     where,
