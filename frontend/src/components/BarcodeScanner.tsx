@@ -96,9 +96,11 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         await scannerRef.current?.start(
           cameraConfig,
           {
-            fps: 10,
-            qrbox: { width: 250, height: 150 },
-            aspectRatio: 1.0 // Better for some mobile displays
+            fps: 15,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.7;
+              return { width: size, height: size * 0.6 };
+            }
           },
           (decodedText) => {
             onScan(decodedText);
@@ -182,7 +184,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             </div>
           )}
 
-          <div id={containerId} className={(error || isStarting) ? 'hidden' : 'rounded-lg overflow-hidden shadow-inner bg-black'} />
+          <div
+            id={containerId}
+            className={`rounded-lg overflow-hidden shadow-inner bg-black min-h-[250px] ${error ? 'hidden' : 'block'}`}
+          />
 
           {!error && !isStarting && (
             <p className="text-center text-sm text-gray-500 mt-3">
